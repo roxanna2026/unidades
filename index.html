@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Interactivo - Unidades de Medida | I.E. Santísima Niña María</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js para síntesis de efectos sonoros -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .heart-beat { animation: heartbeat 1.5s infinite; }
+        @keyframes heartbeat { 
+            0% { transform: scale(1); } 
+            15% { transform: scale(1.2); } 
+            30% { transform: scale(1); } 
+            45% { transform: scale(1.2); } 
+            60% { transform: scale(1); } 
+        }
+        .heart-lost { filter: grayscale(100%); opacity: 0.25; animation: none; }
+        
+        .feedback-pop { 
+            animation: popIn 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.4); opacity: 0; }
+            50% { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 0; }
+        }
+
+        #custom-notification {
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(-20px);
+            opacity: 0;
+            pointer-events: none;
+        }
+        #custom-notification.show {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-sky-900 via-blue-900 to-indigo-950 min-h-screen text-white flex items-center justify-center p-3 sm:p-6">
+
+    <!-- Sistema de Notificaciones Flotantes -->
+    <div id="custom-notification" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-2xl shadow-2xl font-bold flex items-center gap-3 border border-rose-400">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span id="notification-msg">Error de conexión</span>
+        <button onclick="hideNotification()" class="ml-3 text-white hover:text-sky-200 text-lg">✕</button>
+    </div>
+
+    <!-- Feedback Visual Overlay -->
+    <div id="feedback-overlay" class="fixed inset-0 flex items-center justify-center pointer-events-none z-50 hidden">
+        <h2 id="feedback-text" class="text-5xl md:text-7xl font-black drop-shadow-[0_6px_6px_rgba(0,0,0,0.9)] text-center tracking-wider"></h2>
+    </div>
+
+    <!-- Contenedor Principal -->
+    <div class="max-w-3xl w-full bg-slate-50 text-slate-800 rounded-3xl shadow-2xl overflow-hidden fade-in relative border border-sky-100">
+        
+        <!-- Encabezado Institucional -->
+        <header class="bg-gradient-to-r from-blue-800 to-sky-700 text-white p-6 text-center shadow-md relative z-10">
+            <h1 class="text-2xl sm:text-3xl font-black tracking-tight uppercase drop-shadow-sm">I.E. Santísima Niña María</h1>
+            <p class="text-sky-100 font-semibold mt-1 text-base sm:text-lg">Área Curricular: Matemática</p>
+            <div class="inline-block bg-sky-400/30 border border-sky-200/40 text-white px-4 py-1 rounded-full font-bold mt-2 text-xs sm:text-sm uppercase tracking-wider backdrop-blur-sm">
+                Tema: Unidades de Medida
+            </div>
+        </header>
+
+        <!-- 1. PANTALLA DE REGISTRO E IDENTIFICACIÓN -->
+        <div id="screen-register" class="p-6 sm:p-8">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-extrabold text-blue-950">¡Bienvenida al Desafío Matemático!</h2>
+                <p class="text-slate-600 text-sm sm:text-base mt-1">Selecciona tus datos para comenzar la evaluación interactiva.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Grado</label>
+                    <select id="sel-grado" class="w-full p-3.5 border-2 border-sky-200 rounded-xl focus:ring-4 focus:ring-sky-100 focus:border-sky-500 bg-white text-slate-800 outline-none transition font-medium">
+                        <option value="">Selecciona tu grado</option>
+                        <option value="1">1ro Secundaria</option>
+                        <option value="2">2do Secundaria</option>
+                        <option value="3">3ro Secundaria</option>
+                        <option value="4">4to Secundaria</option>
+                        <option value="5">5to Secundaria</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Sección</label>
+                    <select id="sel-seccion" class="w-full p-3.5 border-2 border-sky-200 rounded-xl focus:ring-4 focus:ring-sky-100 focus:border-sky-500 bg-white text-slate-800 outline-none transition font-medium">
+                        <option value="">Selecciona tu sección</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                        <option value="D">D</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <button id="btn-buscar-alumnas" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    Buscar mi nombre
+                </button>
+            </div>
+
+            <div id="container-nombre" class="hidden fade-in space-y-6">
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Estudiante</label>
+                    <select id="sel-nombre" class="w-full p-3.5 border-2 border-sky-200 rounded-xl focus:ring-4 focus:ring-sky-100 focus:border-sky-500 bg-white text-slate-800 outline-none transition font-medium">
+                        <option value="">Selecciona tu nombre</option>
+                    </select>
+                </div>
+
+                <button id="btn-iniciar" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-4 px-4 rounded-xl shadow-lg text-lg tracking-wide transition transform hover:-translate-y-0.5 active:translate-y-0">
+                    ¡COMENZAR EL JUEGO! 🚀
+                </button>
+            </div>
+            
+            <div id="loading-msg" class="hidden text-center text-sky-700 font-bold mt-4 animate-pulse flex items-center justify-center gap-2">
+                <svg class="animate-spin h-5 w-5 text-sky-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                Conectando con la base de datos...
+            </div>
+
+            <!-- Firma de Autoria -->
+            <div class="mt-8 pt-4 border-t border-slate-200 text-center text-xs sm:text-sm text-slate-500">
+                Elaborado por: <span class="font-bold text-blue-900">Roxanna Aste Valdez</span>
+            </div>
+        </div>
+
+        <!-- 2. PANTALLA DE JUEGO INTERACTIVO -->
+        <div id="screen-game" class="hidden p-6 sm:p-8 fade-in relative">
+            
+            <!-- Barra de tiempo -->
+            <div class="w-full bg-slate-200 rounded-full h-4 mb-6 relative overflow-hidden shadow-inner border border-slate-300">
+                <div id="timer-bar" class="bg-sky-500 h-4 rounded-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-slate-800 tracking-wider" id="timer-text">20s</div>
+            </div>
+
+            <!-- Panel de estado (Vidas y Puntaje) -->
+            <div class="flex justify-between items-center mb-6 bg-sky-50/80 p-4 rounded-2xl border border-sky-100 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-blue-900 text-sm sm:text-base">Vidas:</span>
+                    <div id="lives-container" class="flex gap-1 text-rose-500 text-xl sm:text-2xl"></div>
+                </div>
+                <div class="text-right">
+                    <span class="font-bold text-blue-900 text-sm sm:text-base">Puntos:</span>
+                    <span id="score-display" class="text-2xl font-black text-sky-600 ml-1">0</span>
+                </div>
+            </div>
+
+            <!-- Pregunta -->
+            <div class="mb-6 text-center min-h-[100px] flex flex-col justify-center">
+                <span id="question-number" class="text-xs font-extrabold text-sky-600 uppercase tracking-widest">Pregunta 1 de 20</span>
+                <h3 id="question-text" class="text-lg sm:text-xl font-bold text-slate-800 mt-2 leading-snug">Cargando pregunta...</h3>
+            </div>
+
+            <!-- Opciones -->
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <!-- Botones generados dinámicamente -->
+            </div>
+        </div>
+
+        <!-- 3. PANTALLA DE RESULTADOS Y RANKING -->
+        <div id="screen-results" class="hidden p-6 sm:p-8 text-center fade-in">
+            <h2 id="end-title" class="text-3xl font-black mb-2 text-blue-900">¡Juego Terminado!</h2>
+            <p class="text-slate-600 text-base mb-6" id="end-message">Has completado tu participación en esta sesión.</p>
+            
+            <div class="bg-gradient-to-br from-sky-50 to-blue-50 border-2 border-sky-400 rounded-3xl p-5 inline-block mb-6 shadow-md min-w-[200px]">
+                <p class="text-xs text-sky-800 font-extrabold uppercase tracking-wider">Puntaje Final</p>
+                <p id="final-score" class="text-5xl font-black text-blue-900 mt-1">0</p>
+            </div>
+
+            <h3 class="text-lg font-bold text-slate-800 mb-3 flex items-center justify-center gap-2">
+                <span>🏆</span> Ranking Top Estudiantes <span>🏆</span>
+            </h3>
+            <div class="bg-white rounded-2xl border border-sky-100 p-4 max-h-56 overflow-y-auto mb-6 text-left shadow-inner">
+                <ul id="ranking-list" class="divide-y divide-slate-100 text-sm">
+                    <li class="py-2 text-center text-slate-400">Cargando ranking...</li>
+                </ul>
+            </div>
+
+            <button onclick="location.reload()" class="bg-blue-700 hover:bg-blue-800 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg transition transform hover:-translate-y-0.5 active:translate-y-0">
+                Intentar de nuevo
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // === CONFIGURACIÓN DE DEPLIEGUE GOOGLE APPS SCRIPT ===
+        // URL pública de Google Apps Script configurada para el proyecto
+        const GOOGLE_SHEETS_URL = "https://script.google.com/macros/s/AKfycbzFa-mpFXyRKKOsitnhmwAuRDpS2a_gAkerB9YBXxgUSwxCxwjymd5NJJIe--XsQ8gP/exec";
+
+        // === BANCO DE PREGUNTAS PEDAGÓGICAS (Basado estrictamente en el PDF adjunto) ===
+        const questionBank = [
+            // NIVEL FÁCIL (Conceptos básicos y símbolos)
+            { q: "¿Cuál es la unidad base de longitud en el Sistema Métrico Decimal según la guía?", options: ["Centímetro (cm)", "Metro (m)", "Kilómetro (km)", "Micrómetro (μm)"], answer: 1 },
+            { q: "¿Cuál es la unidad básica del Sistema Internacional (SI) para medir el tiempo?", options: ["Minuto (min)", "Hora (h)", "Segundo (s)", "Día (d)"], answer: 2 },
+            { q: "¿Cuál es la unidad principal para medir la masa según el texto?", options: ["Gramo (g)", "Kilogramo (kg)", "Tonelada (t)", "Centigramo (cg)"], answer: 0 },
+            { q: "¿Qué símbolo y potencia representan al prefijo 'Kilo' en longitud?", options: ["k (10²)", "km (10³)", "Km (10⁶)", "kilo (10¹)"], answer: 1 },
+            { q: "¿Cuántos segundos tiene 1 minuto?", options: ["100 s", "60 s", "3600 s", "24 s"], answer: 1 },
+            { q: "¿A cuántas pulgadas equivale exactamente un pie (1 foot)?", options: ["10 pulgadas", "12 pulgadas", "36 pulgadas", "2.54 pulgadas"], answer: 1 },
+
+            // NIVEL INTERMEDIO (Conversiones y equivalencias directas)
+            { q: "¿A cuántos segundos equivale una hora (1 h)?", options: ["60 s", "600 s", "3600 s", "86400 s"], answer: 2 },
+            { q: "¿Cuál es la equivalencia exacta de 1 pulgada en centímetros?", options: ["2,54 cm", "30,48 cm", "0,9144 cm", "10 cm"], answer: 0 },
+            { q: "Para convertir de kilogramos (kg) a gramos (g), ¿por qué factor se debe multiplicar?", options: ["Por 10", "Por 100", "Por 1000", "Por 10000"], answer: 2 },
+            { q: "¿Cuál es el símbolo y la potencia en base 10 del submúltiplo 'micrómetro'?", options: ["mm (10⁻³)", "um / μm (10⁻⁶)", "nm (10⁻⁹)", "pm (10⁻¹²)"], answer: 1 },
+            { q: "¿A cuántos metros equivale un hectómetro (hm)?", options: ["10 m", "100 m", "1000 m", "10000 m"], answer: 1 },
+            { q: "¿Cuántos días se consideran formalmente en un año bisiesto?", options: ["365 días", "366 días", "360 días", "364 días"], answer: 1 },
+            { q: "¿A cuántos años equivale una década?", options: ["5 años", "10 años", "50 años", "100 años"], answer: 1 },
+
+            // NIVEL AVANZADO (Problemas del PDF y prefijos de mayor orden)
+            { q: "Situación del PDF: Luisa lleva 1,5 kg de papa, 0,750 kg de zapallo y 500 g de zanahoria. ¿Cuántos gramos lleva en total?", options: ["2250 g", "2750 g", "3000 g", "2500 g"], answer: 1 },
+            { q: "¿A cuántos metros equivale un Gigámetro (Gm) según los múltiplos del SI?", options: ["10⁶ m (1 000 000 m)", "10⁹ m (1 000 000 000 m)", "10¹² m", "10³ m"], answer: 1 },
+            { q: "¿Cuál es el prefijo y símbolo para la potencia 10⁻⁹ en unidades de longitud?", options: ["picómetro (pm)", "micrómetro (μm)", "nanómetro (nm)", "decímetro (dm)"], answer: 2 },
+            { q: "¿A cuántos pies equivale 1 yarda según el Sistema Anglosajón?", options: ["1 pie", "2 pies", "3 pies", "12 pies"], answer: 2 },
+            { q: "Según el texto, 1 milla equivale a cuántos pies:", options: ["3600 pies", "5280 pies", "1000 pies", "1609 pies"], answer: 1 },
+            { q: "Para pasar de horas a segundos en un solo paso, ¿por qué operación se recurre según el esquema?", options: ["Multiplicar por 60", "Dividir entre 3600", "Multiplicar por 3600", "Dividir entre 60"], answer: 2 },
+            { q: "¿Cuál es la potencia de 10 correspondiente al prefijo 'Terámetro' (Tm)?", options: ["10⁹", "10¹²", "10⁶", "10¹⁵"], answer: 1 },
+            { q: "En la escala de masa, si nos desplazamos de gramos (g) a miligramos (mg), ¿por cuánto debemos multiplicar?", options: ["100", "1000", "10", "10000"], answer: 1 },
+            { q: "¿A cuántos centímetros equivale 1 Ångström (según el cuadro de equivalencias de longitud)?", options: ["10⁻⁶ cm", "10⁻⁸ cm", "10⁻¹⁰ cm", "10⁻³ cm"], answer: 1 }
+        ];
+
+        // === SISTEMA DE NOTIFICACIONES ===
+        let notificationTimeout;
+        function showNotification(message) {
+            const notif = document.getElementById('custom-notification');
+            document.getElementById('notification-msg').textContent = message;
+            notif.classList.add('show');
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(hideNotification, 4000);
+        }
+
+        function hideNotification() {
+            document.getElementById('custom-notification').classList.remove('show');
+        }
+
+        // === CONFIGURACIÓN DE AUDIO CON TONE.JS ===
+        const correctSynth = new Tone.PolySynth(Tone.Synth).toDestination();
+        const incorrectSynth = new Tone.Synth().toDestination();
+        
+        function playCorrectSound() {
+            try {
+                if (Tone.context.state !== 'running') Tone.start();
+                const now = Tone.now();
+                correctSynth.volume.value = -8;
+                correctSynth.triggerAttackRelease(["C4", "E4", "G4", "C5"], "8n", now);
+            } catch (e) { console.warn("Audio context block:", e); }
+        }
+
+        function playIncorrectSound() {
+            try {
+                if (Tone.context.state !== 'running') Tone.start();
+                incorrectSynth.volume.value = -8;
+                incorrectSynth.triggerAttackRelease("A2", "8n");
+            } catch (e) { console.warn("Audio context block:", e); }
+        }
+
+        // === SÍNTESIS DE VOZ (speechSynthesis) ===
+        function speakQuestion(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                // Limpiar caracteres matemáticos complejos para la lectura
+                const cleanText = text.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ\s¿?,.]/g, '');
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'es-PE'; 
+                utterance.rate = 1.0; 
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // === FEEDBACK VISUAL ANIMADO ===
+        const frasesCorrectas = ["¡EXCELENTE!", "¡MUY BIEN!", "¡CORRECTO!", "¡GENIAL!", "¡DESAFÍO SUPERADO!"];
+        const frasesIncorrectas = ["¡SIGUE INTENTANDO!", "¡CONCÉNTRATE!", "¡REVISA LA TEORÍA!", "¡TÚ PUEDES!", "¡CUIDADO!"];
+
+        function showFeedback(isCorrect) {
+            const overlay = document.getElementById('feedback-overlay');
+            const textEl = document.getElementById('feedback-text');
+            
+            const frases = isCorrect ? frasesCorrectas : frasesIncorrectas;
+            const fraseAzar = frases[Math.floor(Math.random() * frases.length)];
+            
+            textEl.textContent = fraseAzar;
+            textEl.className = `text-4xl sm:text-6xl font-black drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] text-center tracking-wider feedback-pop ${isCorrect ? 'text-amber-400' : 'text-rose-500'}`;
+            
+            overlay.classList.remove('hidden');
+            
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                textEl.classList.remove('feedback-pop');
+            }, 900); 
+        }
+
+        // === CONEXIÓN CON GOOGLE APPS SCRIPT (SHEETS) ===
+        const server = {
+            withSuccessHandler: function(callback) {
+                return {
+                    getStudents: function(grado, seccion) {
+                        fetch(`${GOOGLE_SHEETS_URL}?action=getStudents&grado=${encodeURIComponent(grado)}&seccion=${encodeURIComponent(seccion)}`)
+                            .then(response => response.json())
+                            .then(result => { 
+                                if (result.success) {
+                                    callback(result.data || []); 
+                                } else {
+                                    showNotification("Aviso: " + (result.message || "No se encontraron datos"));
+                                    callback([]);
+                                }
+                            })
+                            .catch(error => { 
+                                showNotification("Error al conectar con la base de datos.");
+                                console.error('Error fetching students:', error); 
+                                callback([]); 
+                            });
+                    },
+                    saveScore: async function(nombre, grado, seccion, puntaje) {
+                        let ipEstudiante = 'Desconocido';
+                        try {
+                            const res = await fetch('https://api.ipify.org?format=json');
+                            const data = await res.json();
+                            ipEstudiante = data.ip;
+                        } catch (e) {
+                            console.warn('No se pudo resolver la IP del cliente:', e);
+                        }
+
+                        fetch(`${GOOGLE_SHEETS_URL}?action=saveScore&nombre=${encodeURIComponent(nombre)}&grado=${encodeURIComponent(grado)}&seccion=${encodeURIComponent(seccion)}&puntaje=${puntaje}&ip=${encodeURIComponent(ipEstudiante)}`)
+                            .then(response => response.json())
+                            .then(() => { callback(); })
+                            .catch(error => { console.error('Error guardando puntaje:', error); callback(); });
+                    },
+                    getRanking: function() {
+                        fetch(`${GOOGLE_SHEETS_URL}?action=getRanking`)
+                            .then(response => response.json())
+                            .then(result => { callback(result.data || []); })
+                            .catch(error => { console.error('Error al obtener ranking:', error); callback([]); });
+                    }
+                };
+            }
+        };
+
+        // === LÓGICA Y ESTADO DEL JUEGO ===
+        let currentQuestions = [];
+        let currentIndex = 0;
+        let lives = 5;
+        let score = 0;
+        let studentData = { nombre: '', grado: '', seccion: '' };
+        let timeLeft = 20;
+        let timerInterval = null;
+
+        const screens = {
+            register: document.getElementById('screen-register'),
+            game: document.getElementById('screen-game'),
+            results: document.getElementById('screen-results')
+        };
+        
+        const elements = {
+            selGrado: document.getElementById('sel-grado'),
+            selSeccion: document.getElementById('sel-seccion'),
+            btnBuscar: document.getElementById('btn-buscar-alumnas'),
+            containerNombre: document.getElementById('container-nombre'),
+            selNombre: document.getElementById('sel-nombre'),
+            btnIniciar: document.getElementById('btn-iniciar'),
+            loadingMsg: document.getElementById('loading-msg'),
+            
+            livesContainer: document.getElementById('lives-container'),
+            scoreDisplay: document.getElementById('score-display'),
+            questionNumber: document.getElementById('question-number'),
+            questionText: document.getElementById('question-text'),
+            optionsContainer: document.getElementById('options-container'),
+            timerBar: document.getElementById('timer-bar'),
+            timerText: document.getElementById('timer-text'),
+            
+            finalScore: document.getElementById('final-score'),
+            rankingList: document.getElementById('ranking-list'),
+            endTitle: document.getElementById('end-title'),
+            endMessage: document.getElementById('end-message')
+        };
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            screens[screenName].classList.remove('hidden');
+        }
+
+        // Event listener para buscar estudiantes por grado y sección
+        elements.btnBuscar.addEventListener('click', () => {
+            const grado = elements.selGrado.value;
+            const seccion = elements.selSeccion.value;
+            
+            if (!grado || !seccion) {
+                showNotification('Por favor, selecciona tu grado y sección.');
+                return;
+            }
+
+            elements.loadingMsg.classList.remove('hidden');
+            elements.btnBuscar.disabled = true;
+            elements.btnBuscar.classList.add('opacity-50', 'cursor-not-allowed');
+
+            server.withSuccessHandler((alumnas) => {
+                elements.loadingMsg.classList.add('hidden');
+                elements.btnBuscar.disabled = false;
+                elements.btnBuscar.classList.remove('opacity-50', 'cursor-not-allowed');
+                
+                elements.selNombre.innerHTML = '<option value="">Selecciona tu nombre</option>';
+                if (alumnas && alumnas.length > 0) {
+                    alumnas.forEach(alumna => {
+                        const opt = document.createElement('option');
+                        opt.value = alumna;
+                        opt.textContent = alumna;
+                        elements.selNombre.appendChild(opt);
+                    });
+                    elements.containerNombre.classList.remove('hidden');
+                } else {
+                    showNotification('No se encontraron registros para el grado y sección seleccionados.');
+                }
+            }).getStudents(grado, seccion);
+        });
+
+        // Event listener para iniciar la experiencia interactiva
+        elements.btnIniciar.addEventListener('click', () => {
+            const nombre = elements.selNombre.value;
+            if (!nombre) {
+                showNotification("Por favor selecciona tu nombre de la lista.");
+                return;
+            }
+            
+            studentData = { nombre: nombre, grado: elements.selGrado.value, seccion: elements.selSeccion.value };
+            startGame();
+        });
+
+        function startGame() {
+            if(Tone.context.state !== 'running') Tone.start();
+
+            // Desordenar aleatoriamente el banco de preguntas
+            currentQuestions = [...questionBank].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            lives = 5;
+            score = 0;
+            
+            updateLivesUI();
+            updateScoreUI();
+            showScreen('game');
+            loadQuestion();
+        }
+
+        const corazonSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" class="heart-beat"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>`;
+
+        function updateLivesUI() {
+            elements.livesContainer.innerHTML = '';
+            for(let i = 0; i < 5; i++) {
+                const heart = document.createElement('div');
+                heart.innerHTML = corazonSVG;
+                if(i >= lives) {
+                    heart.querySelector('svg').classList.remove('heart-beat');
+                    heart.querySelector('svg').classList.add('heart-lost');
+                }
+                elements.livesContainer.appendChild(heart);
+            }
+        }
+
+        function updateScoreUI() {
+            elements.scoreDisplay.textContent = score;
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = 20;
+            updateTimerUI();
+            
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerUI();
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    handleTimeout();
+                }
+            }, 1000);
+        }
+
+        function updateTimerUI() {
+            const percentage = (timeLeft / 20) * 100;
+            elements.timerBar.style.width = `${percentage}%`;
+            elements.timerText.textContent = `${timeLeft}s`;
+            
+            if (timeLeft <= 5) {
+                elements.timerBar.classList.replace('bg-sky-500', 'bg-rose-500');
+            } else {
+                elements.timerBar.classList.replace('bg-rose-500', 'bg-sky-500');
+            }
+        }
+
+        function handleTimeout() {
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            playIncorrectSound();
+            showFeedback(false);
+            
+            const buttons = elements.optionsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+            
+            const q = currentQuestions[currentIndex];
+            buttons[q.answer].classList.replace('border-sky-200', 'border-blue-600');
+            buttons[q.answer].classList.replace('bg-white', 'bg-blue-100');
+            
+            lives--;
+            updateLivesUI();
+            
+            setTimeout(() => {
+                if (lives <= 0) endGame(false);
+                else { currentIndex++; loadQuestion(); }
+            }, 1800);
+        }
+
+        function loadQuestion() {
+            if (currentIndex >= currentQuestions.length) {
+                endGame(true);
+                return;
+            }
+
+            const q = currentQuestions[currentIndex];
+            elements.questionNumber.textContent = `Pregunta ${currentIndex + 1} de ${currentQuestions.length}`;
+            elements.questionText.textContent = q.q;
+            
+            elements.optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = "bg-white border-2 border-sky-200 text-slate-800 hover:border-sky-500 hover:bg-sky-50 font-bold py-3.5 px-5 rounded-2xl shadow-sm transition transform hover:-translate-y-0.5 text-left w-full text-sm sm:text-base leading-snug";
+                btn.textContent = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                elements.optionsContainer.appendChild(btn);
+            });
+            
+            startTimer();
+            speakQuestion(q.q);
+        }
+
+        function checkAnswer(selectedIndex, btnElement) {
+            clearInterval(timerInterval);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+            const buttons = elements.optionsContainer.querySelectorAll('button');
+            buttons.forEach(b => b.disabled = true);
+
+            const q = currentQuestions[currentIndex];
+            const isCorrect = (selectedIndex === q.answer);
+
+            if (isCorrect) {
+                playCorrectSound();
+                showFeedback(true);
+                btnElement.classList.replace('border-sky-200', 'border-sky-600');
+                btnElement.classList.replace('bg-white', 'bg-sky-600');
+                btnElement.classList.replace('text-slate-800', 'text-white');
+                score += 10;
+                updateScoreUI();
+            } else {
+                playIncorrectSound();
+                showFeedback(false);
+                btnElement.classList.replace('border-sky-200', 'border-rose-500');
+                btnElement.classList.replace('bg-white', 'bg-rose-500');
+                btnElement.classList.replace('text-slate-800', 'text-white');
+                
+                // Resaltar la respuesta correcta
+                buttons[q.answer].classList.replace('border-sky-200', 'border-sky-600');
+                buttons[q.answer].classList.replace('bg-white', 'bg-sky-100');
+                
+                lives--;
+                updateLivesUI();
+            }
+
+            setTimeout(() => {
+                if (lives <= 0) endGame(false);
+                else { currentIndex++; loadQuestion(); }
+            }, 1500);
+        }
+
+        function endGame(won) {
+            clearInterval(timerInterval);
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            showScreen('results');
+            elements.finalScore.textContent = score;
+            
+            if(won) {
+                elements.endTitle.textContent = "¡Felicitaciones, completaste el reto!";
+                elements.endTitle.className = "text-3xl font-black mb-2 text-sky-700";
+                elements.endMessage.textContent = "Has demostrado un gran dominio de las unidades de medida.";
+            } else {
+                elements.endTitle.textContent = "¡Se agotaron tus vidas!";
+                elements.endTitle.className = "text-3xl font-black mb-2 text-rose-600";
+                elements.endMessage.textContent = "Repasa el material de estudio e inténtalo nuevamente.";
+            }
+
+            elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-400">Registrando tu puntaje...</li>';
+            
+            server.withSuccessHandler(() => {
+                loadRanking();
+            }).saveScore(studentData.nombre, studentData.grado, studentData.seccion, score);
+        }
+
+        function loadRanking() {
+            elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-400">Cargando la tabla de posiciones...</li>';
+            
+            server.withSuccessHandler((ranking) => {
+                elements.rankingList.innerHTML = '';
+                if(!ranking || ranking.length === 0) {
+                    elements.rankingList.innerHTML = '<li class="py-2 text-center text-slate-400">Aún no hay puntajes registrados.</li>';
+                    return;
+                }
+                
+                ranking.forEach((r, index) => {
+                    const li = document.createElement('li');
+                    li.className = "py-2.5 flex justify-between items-center";
+                    
+                    let badgeColor = "bg-sky-100 text-sky-800 border-sky-200";
+                    if(index === 0) badgeColor = "bg-amber-100 text-amber-900 border-amber-300 font-bold";
+                    else if(index === 1) badgeColor = "bg-slate-200 text-slate-800 border-slate-300";
+                    else if(index === 2) badgeColor = "bg-amber-700/20 text-amber-900 border-amber-800/30";
+                    
+                    li.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-full border ${badgeColor} flex items-center justify-center font-black text-xs shadow-sm">${index + 1}</span>
+                            <div>
+                                <p class="font-bold text-slate-800 leading-none">${r.nombre}</p>
+                                <p class="text-[11px] text-slate-400 mt-0.5">${r.grado}° "${r.seccion}"</p>
+                            </div>
+                        </div>
+                        <div class="font-black text-blue-900 text-base">${r.puntaje} <span class="text-xs text-sky-600 font-normal">pts</span></div>
+                    `;
+                    elements.rankingList.appendChild(li);
+                });
+            }).getRanking();
+        }
+    </script>
+</body>
+</html>
